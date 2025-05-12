@@ -97,6 +97,8 @@ object Functions {
     isPrimeUntil(n / 2)
   }
 
+  // Always specify return type of function particularly recursive ones since type is inferred
+
   def main(args: Array[String]): Unit = {
     println(greeting("Evan", 34))
     println(factorial(5))
