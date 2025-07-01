@@ -35,8 +35,21 @@ object AnonymousFunctions {
    * 2. Rewrite the "special" adder from WhatsAFunction using Lambdas
    */
 
+  // Exercise #2
+  val superAdder = new Function1[Int, Function1[Int, Int]] {
+    override def apply(x: Int) = new Function1[Int, Int] {
+      override def apply(y: Int) = x + y
+    }
+  }
+
+  val superAdder_v2 = (x: Int) => (y: Int) => x + y
+
+  private val adder2 = superAdder_v2(2)
+  val anAddition_v2: Int = adder2(43)
+  // currying
+  val anAddition_v3 = superAdder(2)(67)
+
   def main(args: Array[String]): Unit = {
-    println(justDoSomething)
-    println(justDoSomething())
+    println(anAddition_v2)
   }
 }
