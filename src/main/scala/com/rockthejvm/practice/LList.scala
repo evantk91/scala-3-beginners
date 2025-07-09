@@ -16,6 +16,12 @@ abstract class LList[A] {
   def map[B](transformer: A => B): LList[B]
   def filter(predicate: A => Boolean): LList[A]
   def flatMap[B](transformer: A => LList[B]): LList[B]
+
+  // HOFs and curries exercises
+  def forEach(f: A => Unit): Unit
+  def sort(compare: (A, A) => Int): LList[A]
+  def zipWith[B, T](list: LList[T], zip: (A, T) => B): LList[B]
+  def foldLeft[B](start: B)(operator: (B, A) => B): B
 }
 
 case class Empty[A]() extends LList[A] {
@@ -29,6 +35,14 @@ case class Empty[A]() extends LList[A] {
   override def map[B](transformer: A => B): LList[B] = Empty()
   override def filter(predicate: A => Boolean): LList[A] = this
   override def flatMap[B](transformer: A => LList[B]): LList[B] = Empty()
+
+  // HOFs and curries exercises
+  override def forEach(f: A => Unit): Unit = ()
+  override def sort(compare: (A, A) => Int): LList[A] = this
+  override def zipWith[B, T](list: LList[T], zip: (A, T) => B): LList[B] =
+    if(!list.isEmpty) throw new IllegalArgumentException("Empty list zipping with non-empty list")
+    else Empty()
+  override def foldLeft[B](start: B)(operator: (B, A) => B): B = start
 }
 
 case class Cons[A](override val head: A, override val tail: LList[A]) extends LList[A] {
@@ -93,6 +107,44 @@ case class Cons[A](override val head: A, override val tail: LList[A]) extends LL
    */
   override def flatMap[B](transformer: A => LList[B]): LList[B] =
     transformer.apply(head) ++ tail.flatMap(transformer)
+
+  override def forEach(f: A => Unit): Unit = {
+    f(head)
+    tail.forEach(f)
+  }
+
+  /*
+    insert(3, [1,2,4]) =
+    Cons(1, insert(3, [2,4])) =
+    Cons(1, Cons(2, insert(3, [4]))) =
+    Cons(1, Cons(2, Cons(3, [4]))) = [1, 2, 3, 4]
+   */
+  override def sort(compare: (A, A) => Int): LList[A] = {
+    // insertion sort, O(n^2), stack recursive
+    def insert(elem: A, sortedList: LList[A]): LList[A] = {
+      if(sortedList.isEmpty) Cons(elem, Empty())
+      else if (compare(elem, sortedList.head) <= 0) Cons(elem, sortedList)
+      else Cons(sortedList.head, insert(elem, sortedList.tail))
+    }
+
+    val sortedTail = tail.sort(compare)
+    insert(head, sortedTail)
+  }
+
+  override def zipWith[B, T](list: LList[T], zip: (A, T) => B): LList[B] =
+    if(list.isEmpty) throw new IllegalArgumentException("Empty list zipping with non-empty list")
+    else Cons(zip(head, list.head), tail.zipWith(list.tail, zip))
+
+  /*
+    [1,2,3,4].foldLeft[Int](0)(x + y) =
+    [2,3,4].foldLeft(1)(x + y) =
+    [3,4].foldLeft(3)(x + y) =
+    [4].foldLeft(6)(x + y) =
+    [].foldLeft(10)(x + y) = 10
+   */
+
+  override def foldLeft[B](start: B)(operator: (B, A) => B): B =
+    tail.foldLeft(operator(start, head))(operator)
 }
 
 /**
@@ -152,7 +204,7 @@ object LListTest {
     val first3Numbers_v2 = empty.add(1).add(2).add(3)
     println(first3Numbers_v2)
 
-    val someStrings = Cons("dog", Cons("cat", Empty()))
+    val someStrings = Cons("dog", Cons("cat", Cons("snake", Empty())))
     println(someStrings)
 
     val evenPredicate = new Function1[Int, Boolean] {
@@ -169,28 +221,36 @@ object LListTest {
         Cons(value, Cons(value + 1, Empty()))
     }
 
-    // map testing
-    val numbersDoubled = first3Numbers.map(doubler)
-    val numbersDoubled_v2 = first3Numbers.map(x => x * 2)
-    val numbersDoubled_v3 = first3Numbers.map(_ * 2)
-    println(numbersDoubled)
-
-    val numbersNested = first3Numbers.map(doublerList)
-    val numbersNested_v2 = first3Numbers.map(value => Cons(value, Cons(value + 1, Empty())))
-    println(numbersNested)
-
-    // filter testing
-    val onlyEvenNumbers = first3Numbers.filter(evenPredicate)
-    val onlyEvenNumbers_v2 = first3Numbers.filter(element => element % 2 == 0)
-    val onlyEvenNumbers_v3 = first3Numbers.filter(_ % 2 == 0)
-    println(onlyEvenNumbers)
-
-    val flattenedList = first3Numbers.flatMap(doublerList)
-    val flattenedList_v2 = first3Numbers.flatMap(value => Cons(value, Cons(value + 1, Empty())))
-    println(flattenedList)
-    
-    // find test
-    println(LList.find[Int](first3Numbers, _ % 2 == 0))
+//    // map testing
+//    val numbersDoubled = first3Numbers.map(doubler)
+//    val numbersDoubled_v2 = first3Numbers.map(x => x * 2)
+//    val numbersDoubled_v3 = first3Numbers.map(_ * 2)
+//    println(numbersDoubled)
+//
+//    val numbersNested = first3Numbers.map(doublerList)
+//    val numbersNested_v2 = first3Numbers.map(value => Cons(value, Cons(value + 1, Empty())))
+//    println(numbersNested)
+//
+//    // filter testing
+//    val onlyEvenNumbers = first3Numbers.filter(evenPredicate)
+//    val onlyEvenNumbers_v2 = first3Numbers.filter(element => element % 2 == 0)
+//    val onlyEvenNumbers_v3 = first3Numbers.filter(_ % 2 == 0)
+//    println(onlyEvenNumbers)
+//
+//    val flattenedList = first3Numbers.flatMap(doublerList)
+//    val flattenedList_v2 = first3Numbers.flatMap(value => Cons(value, Cons(value + 1, Empty())))
+//    println(flattenedList)
+//
+//    // find test
+//    println(LList.find[Int](first3Numbers, _ % 2 == 0))
 //    println(LList.find[Int](first3Numbers, (element: Int) => element > 5)) // throws exception
+
+    // forEach test
+    first3Numbers.forEach(x => println(x))
+
+    val zippedList = first3Numbers.zipWith[String, String](someStrings, (number, string) => s"$number-$string")
+
+    println(zippedList)
+    println(first3Numbers.foldLeft(0)(_ + _))
   }
 }

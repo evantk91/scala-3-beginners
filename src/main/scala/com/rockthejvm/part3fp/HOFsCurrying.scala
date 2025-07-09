@@ -55,10 +55,60 @@ object HOFsCurrying {
   val standardFormat: (Double => String) = curriedFormatter("%4.2f") // (x: Double) => "%4.2f".format(x)
   val preciseFormat: (Double => String) = curriedFormatter("%10.8f") // (x: Double) => "%10.8f".format(x)
 
+  /**
+   * 1. LList exercises
+   *    - foreach(A => Unit)
+   *      [1,2,3].foreach(x => println(x))
+   *
+   *    - sort((A, A) => Int): LList[A]
+   *      [3,2,4,1].sort((x, y) => x - y) = [1,2,3,4]
+   *      (hint: use insertion sort)
+   *
+   *    - zipWith[B](LList[A], (A, A) => B): LList[B]
+   *      [1,2,3].zipWith([4,5,6], x * y) => [1 * 4, 2 * 5, 3 * 6] = [4, 10, 18]
+   *
+   *    - foldLeft[B](start: B)((A, B) => B): B
+   *      [1,2,3,4].foldLeft[Int](0)(x + y) = 10
+   *      0 + 1 = 1
+   *      1 + 2 = 3
+   *      3 + 3 = 6
+   *      6 + 4 = 10
+   *
+   *  2. toCurry(f: (Int, Int) => Int): Int => Int => Int
+   *     fromCurry(f: (Int => Int => Int)): (Int, Int) => Int
+   *
+   *  3. compose(f,g) => x => f(g(x))
+   *     andThen(f,g) => x => g(f(x))
+   */
+
+  // 2
+  // def toCurry(f: (Int, Int) => Int): Int => Int => Int = x => y => f(x, y)
+  def toCurry[A, B, C](f: (A, B) => C): A => B => C = x => y => f(x, y)
+
+  val superAdder_v2: Int => Int => Int = toCurry[Int, Int, Int]((x, y) => x + y)
+
+  // def fromCurry(f: Int => Int => Int): (Int, Int) => Int = (x, y) => f(x)(y)
+  def fromCurry[A, B, C](f: A => B => C): (A, B) => C = (x, y) => f(x)(y)
+
+  val simpleAdder = fromCurry(superAdder_v2)
+
+  // 3
+  // def compose(f: Int => Int, g: Int => Int): Int => Int = x => f(g(x))
+  def compose[A, B, C](f: B => C, g: A => B): A => C = x => f(g(x))
+
+  val doubler: Int => Int = (x: Int) => x * 2
+  val incrementer = (x: Int) => x + 1
+
+  val composedFunc = compose(doubler, incrementer)
+
+  // def andThen(f: Int => Int, g: Int => Int): Int => Int = x => g(f(x))
+  def andThen[A, B, C](f: A => B, g: B => C): A => C = x => g(f(x))
+
+  val composedFunc2 = andThen(doubler, incrementer)
+
   def main(args: Array[String]): Unit = {
-    println(tenThousand)
-    println(tenThousand_v2)
-    println(standardFormat(Math.PI))
-    println(preciseFormat(Math.PI))
+    println(superAdder_v2(3)(4))
+    println(simpleAdder(2, 1))
+    println(composedFunc2(3))
   }
 }
